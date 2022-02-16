@@ -7,7 +7,7 @@ public class Memory {
     static public int[] memory = new int[memory_size];
     static public Stack<Process> teleports;
 
-    public int get(int index) {
+    static public int get(int index) {
         return memory[index];
     }
 

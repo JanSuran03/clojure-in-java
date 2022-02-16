@@ -1,6 +1,5 @@
 package processor;
 
-import java.math.BigInteger;
 import java.util.Stack;
 
 public class Process {
@@ -71,12 +70,18 @@ public class Process {
         return (int) ret;
     }
 
-    public Process nop(int immediate) {
+    /**
+     * INSTRUCTION: 0x00
+     */
+    public Process nop() {
         this.incPc();
         return this;
     }
 
-    public Process pc(int immediate) {
+    /**
+     * INSTRUCTION: 0x01
+     */
+    public Process pc() {
         if (this.canPush()) {
             this.pushStack(private_pc);
             this.incPc();
@@ -87,6 +92,9 @@ public class Process {
         return this;
     }
 
+    /**
+     * INSTRUCTION: 0x02
+     */
     public Process push(int immediate) {
         if (this.canPush()) {
             this.pushStack(immediate);
@@ -97,7 +105,10 @@ public class Process {
         return this;
     }
 
-    public Process pop(int immediate) {
+    /**
+     * INSTRUCTION: 0x03
+     */
+    public Process pop() {
         if (this.canPop()) {
             this.popStack();
             this.incPc();
@@ -107,7 +118,10 @@ public class Process {
         return this;
     }
 
-    public Process swap(int immediate) {
+    /**
+     * INSTRUCTION: 0x04
+     */
+    public Process swap() {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
@@ -120,7 +134,10 @@ public class Process {
         return this;
     }
 
-    public Process dup(int immediate) {
+    /**
+     * INSTRUCTION: 0x05
+     */
+    public Process dup() {
         if (this.canPush()) {
             this.pushStack(this.stack.peek());
             this.incPc();
@@ -130,7 +147,10 @@ public class Process {
         return this;
     }
 
-    public Process pushssize(int immediate) {
+    /**
+     * INSTRUCTION: 0x06
+     */
+    public Process pushssz() {
         if (this.canPush()) {
             this.pushStack(this.stack.size());
             this.incPc();
@@ -140,7 +160,10 @@ public class Process {
         return this;
     }
 
-    public Process load(int immediate) {
+    /**
+     * INSTRUCTION: 0x07
+     */
+    public Process load() {
         if (this.canPop()) {
             int mem_idx = this.popStack();
         } else {
@@ -149,7 +172,10 @@ public class Process {
         return this;
     }
 
-    public Process store(int immediate) {
+    /**
+     * INSTRUCTION: 0x08
+     */
+    public Process store() {
         if (this.canPopTwo()) {
             int mem_idx = this.popStack();
             int val = this.popStack();
@@ -159,7 +185,10 @@ public class Process {
         return this;
     }
 
-    public Process add(int immediate) {
+    /**
+     * INSTRUCTION: 0x09
+     */
+    public Process add() {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
@@ -171,7 +200,10 @@ public class Process {
         return this;
     }
 
-    public Process sub(int immediate) {
+    /**
+     * INSTRUCTION: 0x0a
+     */
+    public Process sub() {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
@@ -183,7 +215,10 @@ public class Process {
         return this;
     }
 
-    public Process div(int immediate) {
+    /**
+     * INSTRUCTION: 0x0b
+     */
+    public Process div() {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
@@ -199,7 +234,10 @@ public class Process {
         return this;
     }
 
-    public Process pow(int immediate) {
+    /**
+     * INSTRUCTION: 0x0c
+     */
+    public Process pow() {
         if (this.canPopTwo()) {
             int basis = this.popStack();
             int exp = this.popStack();
@@ -225,18 +263,30 @@ public class Process {
         return this;
     }
 
+    /**
+     * INSTRUCTION: 0x0d
+     */
     public Process brz(int immediate) {
         return this.br(0, immediate);
     }
 
+    /**
+     * INSTRUCTION: 0x0e
+     */
     public Process br3(int immediate) {
         return this.br(3, immediate);
     }
 
+    /**
+     * INSTRUCTION: 0x0f
+     */
     public Process br7(int immediate) {
         return this.br(7, immediate);
     }
 
+    /**
+     * INSTRUCTION: 0x10
+     */
     public Process brge(int immediate) {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
@@ -250,42 +300,55 @@ public class Process {
         return this;
     }
 
+    /**
+     * INSTRUCTION: 0x11
+     */
     public Process jmp(int immediate) {
         this.private_pc = mod256(this.private_pc + immediate + 1);
         return this;
     }
 
-    /*0x13*/
-    public Process bomb(int immediate) {
+    /**
+     * INSTRUCTION: 0x12
+     */
+    public Process armedBomb() {
+        this.terminate();
+        return this;
+    }
+
+    /**
+     * INSTRUCTION: 0x13
+     */
+    public Process bomb() {
         Memory.writeOnIndex(this.private_pc, 0x12);
         this.incPc();
         return this;
     }
 
-    /*0x12*/
-    public Process armedBomb(int immediate) {
-        this.terminate();
-        return this;
-    }
-
-    public Process tlport(int immediate) {
+    /**
+     * INSTRUCTION: 0x14
+     */
+    public Process tlport() {
         this.waitingForTeleport = true;
         Memory.addTeleport(this);
         return this;
     }
 
-    public Process jntr(int immediate) {
+    /**
+     * INSTRUCTION: 0x15
+     */
+    public Process jntar() {
         int[] offsets = new int[]{-8, -4, -2, 2, 4, 8};
         for (int offset : offsets)
             Memory.writeOnIndex(mod256(this.private_pc + offset), 0x13);
         return this;
     }
 
-    static public int binStrToDec(String num){
+    static public int binStrToDec(String num) {
         String rev = new StringBuilder(num).reverse().toString();
         int ret = 0, pow = 1;
-        for(int i = 0; i < rev.length(); i++){
-            if (rev.charAt(i) == '1'){
+        for (int i = 0; i < rev.length(); i++) {
+            if (rev.charAt(i) == '1') {
                 ret += pow;
             }
             pow *= 2;
@@ -301,6 +364,44 @@ public class Process {
         ret[0] = binStrToDec(as_bin.substring(24));
         ret[1] = binStrToDec(as_bin.substring(8, 24));
         return ret;
+    }
+
+    public Process dispatchProcess() {
+        if (this.isTerminated) {
+            return this;
+        }
+        int[] inst_and_arg = intToInstructionAndArgument(Memory.get(this.private_pc));
+        int inst = inst_and_arg[0];
+        int arg = inst_and_arg[1];
+        switch (inst) {
+            case 0x00 -> this.nop();
+            case 0x01 -> this.pc();
+            case 0x02 -> this.push(arg);
+            case 0x03 -> this.pop();
+            case 0x04 -> this.swap();
+            case 0x05 -> this.dup();
+            case 0x06 -> this.pushssz();
+            case 0x07 -> this.load();
+            case 0x08 -> this.store();
+            case 0x09 -> this.add();
+            case 0x0a -> this.sub();
+            case 0x0b -> this.div();
+            case 0x0c -> this.pow();
+            case 0x0d -> this.brz(arg);
+            case 0x0e -> this.br3(arg);
+            case 0x0f -> this.br7(arg);
+            case 0x10 -> this.brge(arg);
+            case 0x11 -> this.jmp(arg);
+            case 0x12 -> this.armedBomb();
+            case 0x13 -> this.bomb();
+            case 0x14 -> this.tlport();
+            case 0x15 -> this.jntar();
+            default -> throw new RuntimeException
+                    ("Oopsie, instruction dispatch failed: "
+                            + String.valueOf(Memory.get(this.private_pc)) + "; inst = "
+                            + String.valueOf(inst) + "; arg = " + String.valueOf(arg));
+        }
+        return this;
     }
 
 }
