@@ -4,7 +4,7 @@ import java.util.Stack;
 
 public class Process {
     public int private_pc;
-    private Stack<Integer> stack;
+    private final Stack<Integer> stack;
     public boolean isTerminated;
     private boolean waitingForTeleport;
     static int MAX_STACK_SIZE = 16;

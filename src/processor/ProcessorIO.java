@@ -1,9 +1,12 @@
 package processor;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Scanner;
 
-public class Parser {
+public class ProcessorIO {
     static public int[][][] parseInputFromFile(String filename) throws Exception {
         Scanner scanner = new Scanner(new File(filename));
         int num_inputs = scanner.nextInt();
@@ -16,7 +19,7 @@ public class Parser {
                 int num_instructions = scanner.nextInt();
                 int[] instructions = new int[num_instructions + 1];
                 instructions[0] = mem_offset;
-                for (int k = 1; k <= num_instructions; k++){
+                for (int k = 1; k <= num_instructions; k++) {
                     instructions[k] = scanner.nextInt();
                 }
                 processors[j] = instructions;
@@ -24,5 +27,11 @@ public class Parser {
             ret[i] = processors;
         }
         return ret;
+    }
+
+    static public void writeToFile(String filename, String content) throws Exception {
+        FileWriter writer = new FileWriter(filename);
+        writer.write(content);
+        writer.flush();
     }
 }

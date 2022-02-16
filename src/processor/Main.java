@@ -2,7 +2,7 @@ package processor;
 
 public class Main {
 
-    static public void runProcessor(Process[] processes) {
+    static public String runProcessor(Process[] processes, String filename) {
         for (int i = 0; i < 5000; i++) {
             for (Process p : processes) {
                 p.dispatchProcess();
@@ -12,10 +12,10 @@ public class Main {
         int sum_of_pcs = 0;
         for (Process p : processes) {
             sum_of_pcs += p.private_pc;
-            System.out.print(p.private_pc + " ");
         }
         System.out.print(mem_at_42);
         System.out.println(" " + sum_of_pcs);
+        return mem_at_42 + " " + sum_of_pcs + "\n";
     }
 
     static public Process[] initProcesses(int[][] input) {
@@ -37,12 +37,14 @@ public class Main {
     }
 
     static public void runSample(String filename) throws Exception {
-        int[][][] all_inputs = Parser.parseInputFromFile(filename);
+        int[][][] all_inputs = ProcessorIO.parseInputFromFile(filename);
+        StringBuilder to_file = new StringBuilder();
         for (int[][] input : all_inputs) {
             initMemory(input);
             Process[] processes = initProcesses(input);
-            runProcessor(processes);
+            to_file.append(runProcessor(processes, filename));
         }
+        ProcessorIO.writeToFile("out-" + filename, to_file.toString());
     }
 
     static public void runSamples() throws Exception {
