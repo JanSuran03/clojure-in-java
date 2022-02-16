@@ -256,8 +256,8 @@ public class Process {
     }
 
     /*0x13*/
-    public Process bomb(Memory memory, int immediate) {
-        memory.writeOnIndex(this.private_pc, 0x12);
+    public Process bomb(int immediate) {
+        Memory.writeOnIndex(this.private_pc, 0x12);
         this.incPc();
         return this;
     }
@@ -268,16 +268,16 @@ public class Process {
         return this;
     }
 
-    public Process tlport(Memory memory, int immediate) {
+    public Process tlport(int immediate) {
         this.waitingForTeleport = true;
-        memory.addTeleport(this);
+        Memory.addTeleport(this);
         return this;
     }
 
-    public Process jntr(Memory memory, int immediate) {
+    public Process jntr(int immediate) {
         int[] offsets = new int[]{-8, -4, -2, 2, 4, 8};
         for (int offset : offsets)
-            memory.writeOnIndex(mod256(this.private_pc + offset), 0x13);
+            Memory.writeOnIndex(mod256(this.private_pc + offset), 0x13);
         return this;
     }
 
