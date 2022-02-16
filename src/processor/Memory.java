@@ -3,8 +3,8 @@ package processor;
 import java.util.Stack;
 
 public class Memory {
-    static public int memory_size = 256;
-    static public int[] memory = new int[memory_size];
+    static public int MEMORY_SIZE = 256;
+    static public int[] memory = new int[MEMORY_SIZE];
     static public Stack<Process> teleports;
 
     static public int get(int index) {
@@ -22,7 +22,7 @@ public class Memory {
     }
 
     static public void reset() {
-        for (int i = 0; i < memory_size; i++) {
+        for (int i = 0; i < MEMORY_SIZE; i++) {
             memory[i] = 0;
         }
         teleports = new Stack<>();

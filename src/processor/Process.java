@@ -3,12 +3,12 @@ package processor;
 import java.util.Stack;
 
 public class Process {
-    private int private_pc;
+    public int private_pc;
     private Stack<Integer> stack;
     private boolean isTerminated;
     private boolean waitingForTeleport;
-    static int maxStackSize = 16;
-    static int two_to_32 = (int) Math.pow(2, 32);
+    static int MAX_STACK_SIZE = 16;
+    static int TWO_TO_32 = (int) Math.pow(2, 32);
 
     public Process() {
         private_pc = 1;
@@ -18,11 +18,11 @@ public class Process {
     }
 
     public int stayIn32Bits(int num) {
-        return num % two_to_32;
+        return num % TWO_TO_32;
     }
 
     boolean canPush() {
-        return this.stack.size() < maxStackSize;
+        return this.stack.size() < MAX_STACK_SIZE;
     }
 
     void pushStack(int num) {
@@ -42,7 +42,7 @@ public class Process {
     }
 
     void incPc() {
-        this.private_pc++;
+        this.private_pc = mod256(this.private_pc + 1);
     }
 
     void terminate() {
@@ -54,7 +54,7 @@ public class Process {
     }
 
     static int modularExp(int basis, int exp) {
-        basis = basis % two_to_32;
+        basis = basis % TWO_TO_32;
         if (basis == 0)
             return 0;
         long ret = 1L;
@@ -62,9 +62,9 @@ public class Process {
         long y = exp;
         while (y > 0) {
             if (y % 2 == 1) {
-                ret = (ret * x) % two_to_32;
+                ret = (ret * x) % TWO_TO_32;
             }
-            x = (x * x) % two_to_32;
+            x = (x * x) % TWO_TO_32;
             y = y / 2;
         }
         return (int) ret;
@@ -396,12 +396,8 @@ public class Process {
             case 0x13 -> this.bomb();
             case 0x14 -> this.tlport();
             case 0x15 -> this.jntar();
-            default -> throw new RuntimeException
-                    ("Oopsie, instruction dispatch failed: "
-                            + String.valueOf(Memory.get(this.private_pc)) + "; inst = "
-                            + String.valueOf(inst) + "; arg = " + String.valueOf(arg));
+            default -> this.terminate();
         }
         return this;
     }
-
 }
