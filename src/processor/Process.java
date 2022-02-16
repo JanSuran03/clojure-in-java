@@ -5,13 +5,13 @@ import java.util.Stack;
 public class Process {
     public int private_pc;
     private Stack<Integer> stack;
-    private boolean isTerminated;
+    public boolean isTerminated;
     private boolean waitingForTeleport;
     static int MAX_STACK_SIZE = 16;
     static int TWO_TO_32 = (int) Math.pow(2, 32);
 
-    public Process() {
-        private_pc = 0;
+    public Process(int offset) {
+        private_pc = offset;
         stack = new Stack<>();
         isTerminated = false;
         waitingForTeleport = false;

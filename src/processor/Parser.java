@@ -1,9 +1,7 @@
 package processor;
 
 import java.io.File;
-import java.io.FileReader;
 import java.util.Scanner;
-import java.util.Vector;
 
 public class Parser {
     static public int[][][] parseInputFromFile(String filename) throws Exception {

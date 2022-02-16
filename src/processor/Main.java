@@ -12,6 +12,7 @@ public class Main {
         int sum_of_pcs = 0;
         for (Process p : processes) {
             sum_of_pcs += p.private_pc;
+            System.out.print(p.private_pc + " ");
         }
         System.out.print(mem_at_42);
         System.out.println(" " + sum_of_pcs);
@@ -20,7 +21,7 @@ public class Main {
     static public Process[] initProcesses(int[][] input) {
         Process[] processes = new Process[input.length];
         for (int i = 0; i < input.length; i++) {
-            processes[i] = new Process();
+            processes[i] = new Process(input[i][0]);
         }
         return processes;
     }
@@ -52,15 +53,6 @@ public class Main {
     }
 
     static public void main(String[] args) throws Exception {
-
         runSamples();
-
-        //for (int num : Memory.memory) {
-        //    System.out.print(String.valueOf(num) + ' ');
-        //}
-
-
-        //for (int obj : Process.intToInstructionAndArgument(156456456))
-        //    System.out.println(obj);
     }
 }
