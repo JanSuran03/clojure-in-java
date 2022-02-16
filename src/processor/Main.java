@@ -14,7 +14,15 @@ public class Main {
             sum_of_pcs += p.private_pc;
         }
         System.out.print(mem_at_42);
-        System.out.println(" " + String.valueOf(sum_of_pcs));
+        System.out.println(" " + sum_of_pcs);
+    }
+
+    static public Process[] initProcesses(int[][] input) {
+        Process[] processes = new Process[input.length];
+        for (int i = 0; i < input.length; i++) {
+            processes[i] = new Process();
+        }
+        return processes;
     }
 
     static public void initMemory(int[][] input) {
@@ -31,10 +39,7 @@ public class Main {
         int[][][] all_inputs = Parser.parseInputFromFile(filename);
         for (int[][] input : all_inputs) {
             initMemory(input);
-            Process[] processes = new Process[input.length];
-            for (int i = 0; i < input.length; i++) {
-                processes[i] = new Process();
-            }
+            Process[] processes = initProcesses(input);
             runProcessor(processes);
         }
     }

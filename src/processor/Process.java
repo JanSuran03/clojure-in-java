@@ -11,7 +11,7 @@ public class Process {
     static int TWO_TO_32 = (int) Math.pow(2, 32);
 
     public Process() {
-        private_pc = 1;
+        private_pc = 0;
         stack = new Stack<>();
         isTerminated = false;
         waitingForTeleport = false;
@@ -73,152 +73,146 @@ public class Process {
     /**
      * INSTRUCTION: 0x00
      */
-    public Process nop() {
+    public void nop() {
         this.incPc();
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x01
      */
-    public Process pc() {
+    public void pc() {
         if (this.canPush()) {
-            this.pushStack(private_pc);
+            this.pushStack(this.private_pc);
             this.incPc();
         } else {
             this.terminate();
         }
-
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x02
      */
-    public Process push(int immediate) {
+    public void push(int immediate) {
         if (this.canPush()) {
             this.pushStack(immediate);
             this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x03
      */
-    public Process pop() {
+    public void pop() {
         if (this.canPop()) {
             this.popStack();
             this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x04
      */
-    public Process swap() {
+    public void swap() {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
-            this.pushStack(val2);
             this.pushStack(val1);
+            this.pushStack(val2);
             this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x05
      */
-    public Process dup() {
+    public void dup() {
         if (this.canPush()) {
             this.pushStack(this.stack.peek());
             this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x06
      */
-    public Process pushssz() {
+    public void pushssz() {
         if (this.canPush()) {
             this.pushStack(this.stack.size());
             this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x07
      */
-    public Process load() {
+    public void load() {
         if (this.canPop()) {
             int mem_idx = this.popStack();
+            this.pushStack(Memory.get(mem_idx));
+            this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x08
      */
-    public Process store() {
+    public void store() {
         if (this.canPopTwo()) {
             int mem_idx = this.popStack();
             int val = this.popStack();
+            Memory.writeOnIndex(mem_idx, val);
+            this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x09
      */
-    public Process add() {
+    public void add() {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
             int res = stayIn32Bits(val1 + val2);
             this.pushStack(res);
+            this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x0a
      */
-    public Process sub() {
+    public void sub() {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
             int res = stayIn32Bits(val1 - val2);
             this.pushStack(res);
+            this.incPc();
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x0b
      */
-    public Process div() {
+    public void div() {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
@@ -227,17 +221,17 @@ public class Process {
             } else {
                 int res = val1 / val2;
                 this.pushStack(stayIn32Bits(res));
+                this.incPc();
             }
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x0c
      */
-    public Process pow() {
+    public void pow() {
         if (this.canPopTwo()) {
             int basis = this.popStack();
             int exp = this.popStack();
@@ -247,7 +241,6 @@ public class Process {
         } else {
             this.terminate();
         }
-        return this;
     }
 
     private Process br(int limit, int immediate) {
@@ -266,28 +259,28 @@ public class Process {
     /**
      * INSTRUCTION: 0x0d
      */
-    public Process brz(int immediate) {
-        return this.br(0, immediate);
+    public void brz(int immediate) {
+        this.br(0, immediate);
     }
 
     /**
      * INSTRUCTION: 0x0e
      */
-    public Process br3(int immediate) {
-        return this.br(3, immediate);
+    public void br3(int immediate) {
+        this.br(3, immediate);
     }
 
     /**
      * INSTRUCTION: 0x0f
      */
-    public Process br7(int immediate) {
-        return this.br(7, immediate);
+    public void br7(int immediate) {
+        this.br(7, immediate);
     }
 
     /**
      * INSTRUCTION: 0x10
      */
-    public Process brge(int immediate) {
+    public void brge(int immediate) {
         if (this.canPopTwo()) {
             int val1 = this.popStack();
             int val2 = this.popStack();
@@ -297,32 +290,28 @@ public class Process {
         } else {
             this.terminate();
         }
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x11
      */
-    public Process jmp(int immediate) {
+    public void jmp(int immediate) {
         this.private_pc = mod256(this.private_pc + immediate + 1);
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x12
      */
-    public Process armedBomb() {
+    public void armedBomb() {
         this.terminate();
-        return this;
     }
 
     /**
      * INSTRUCTION: 0x13
      */
-    public Process bomb() {
+    public void bomb() {
         Memory.writeOnIndex(this.private_pc, 0x12);
         this.incPc();
-        return this;
     }
 
     /**
@@ -337,11 +326,10 @@ public class Process {
     /**
      * INSTRUCTION: 0x15
      */
-    public Process jntar() {
+    public void jntar() {
         int[] offsets = new int[]{-8, -4, -2, 2, 4, 8};
         for (int offset : offsets)
             Memory.writeOnIndex(mod256(this.private_pc + offset), 0x13);
-        return this;
     }
 
     static public int binStrToDec(String num) {
@@ -366,38 +354,36 @@ public class Process {
         return ret;
     }
 
-    public Process dispatchProcess() {
-        if (this.isTerminated) {
-            return this;
+    public void dispatchProcess() {
+        if (!this.isTerminated) {
+            int[] inst_and_arg = intToInstructionAndArgument(Memory.get(this.private_pc));
+            int inst = inst_and_arg[0];
+            int arg = inst_and_arg[1];
+            switch (inst) {
+                case 0x00 -> this.nop();
+                case 0x01 -> this.pc();
+                case 0x02 -> this.push(arg);
+                case 0x03 -> this.pop();
+                case 0x04 -> this.swap();
+                case 0x05 -> this.dup();
+                case 0x06 -> this.pushssz();
+                case 0x07 -> this.load();
+                case 0x08 -> this.store();
+                case 0x09 -> this.add();
+                case 0x0a -> this.sub();
+                case 0x0b -> this.div();
+                case 0x0c -> this.pow();
+                case 0x0d -> this.brz(arg);
+                case 0x0e -> this.br3(arg);
+                case 0x0f -> this.br7(arg);
+                case 0x10 -> this.brge(arg);
+                case 0x11 -> this.jmp(arg);
+                case 0x12 -> this.armedBomb();
+                case 0x13 -> this.bomb();
+                case 0x14 -> this.tlport();
+                case 0x15 -> this.jntar();
+                default -> this.terminate();
+            }
         }
-        int[] inst_and_arg = intToInstructionAndArgument(Memory.get(this.private_pc));
-        int inst = inst_and_arg[0];
-        int arg = inst_and_arg[1];
-        switch (inst) {
-            case 0x00 -> this.nop();
-            case 0x01 -> this.pc();
-            case 0x02 -> this.push(arg);
-            case 0x03 -> this.pop();
-            case 0x04 -> this.swap();
-            case 0x05 -> this.dup();
-            case 0x06 -> this.pushssz();
-            case 0x07 -> this.load();
-            case 0x08 -> this.store();
-            case 0x09 -> this.add();
-            case 0x0a -> this.sub();
-            case 0x0b -> this.div();
-            case 0x0c -> this.pow();
-            case 0x0d -> this.brz(arg);
-            case 0x0e -> this.br3(arg);
-            case 0x0f -> this.br7(arg);
-            case 0x10 -> this.brge(arg);
-            case 0x11 -> this.jmp(arg);
-            case 0x12 -> this.armedBomb();
-            case 0x13 -> this.bomb();
-            case 0x14 -> this.tlport();
-            case 0x15 -> this.jntar();
-            default -> this.terminate();
-        }
-        return this;
     }
 }

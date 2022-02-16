@@ -8,7 +8,7 @@ public class Memory {
     static public Stack<Process> teleports;
 
     static public int get(int index) {
-        return memory[index];
+        return memory[index % MEMORY_SIZE];
     }
 
     static public void writeOnIndex(int index, int value) {
