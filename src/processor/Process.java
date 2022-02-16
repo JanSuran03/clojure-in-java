@@ -12,8 +12,8 @@ public class Process {
     static int two_to_32 = (int) Math.pow(2, 32);
 
     public Process() {
-        private_pc = 0;
-        stack = new Stack<Integer>();
+        private_pc = 1;
+        stack = new Stack<>();
         isTerminated = false;
         waitingForTeleport = false;
     }
@@ -279,6 +279,28 @@ public class Process {
         for (int offset : offsets)
             memory.writeOnIndex(mod256(this.private_pc + offset), 0x13);
         return this;
+    }
+
+    static public int binStrToDec(String num){
+        String rev = new StringBuilder(num).reverse().toString();
+        int ret = 0, pow = 1;
+        for(int i = 0; i < rev.length(); i++){
+            if (rev.charAt(i) == '1'){
+                ret += pow;
+            }
+            pow *= 2;
+        }
+        return ret;
+    }
+
+    static public int[] intToInstructionAndArgument(int num) {
+        String as_bin = Integer.toBinaryString(num);
+        String fill = "0".repeat(32 - as_bin.length());
+        as_bin = fill + as_bin;
+        int[] ret = new int[2];
+        ret[0] = binStrToDec(as_bin.substring(24));
+        ret[1] = binStrToDec(as_bin.substring(8, 24));
+        return ret;
     }
 
 }
