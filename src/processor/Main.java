@@ -1,8 +1,5 @@
 package processor;
 
-import java.util.Arrays;
-import java.util.Vector;
-
 public class Main {
 
     static public String runProcessor(Process[] processes, long[][] for_testing, int ctr) {
@@ -10,8 +7,9 @@ public class Main {
             for (Process p : processes) {
                 p.dispatchProcess();
             }
+            Memory.maybeRunTeleports();
         }
-        long mem_at_42 = Memory.get(42);
+        long mem_at_42 = Memory.get(42L);
         long sum_of_pcs = 0;
         for (Process p : processes) {
             sum_of_pcs += p.private_pc;
@@ -25,11 +23,12 @@ public class Main {
         for (int i = 0; i < input.length; i++) {
             processes[i] = new Process((int) input[i][0]);
         }
+        Memory.resetTeleports();
         return processes;
     }
 
     static public void initMemory(long[][] input) {
-        Memory.reset();
+        Memory.resetMemory();
         for (long[] process : input) {
             long process_offset = process[0];
             for (int i = 1; i < process.length; i++) {
@@ -76,8 +75,7 @@ public class Main {
     }
 
     static public void compare(long[][] ret, long[][] correct) {
-        System.out.println();
-        System.out.println();
+        System.out.println('\n');
         for (int i = 0; i < ret.length; i++)
             if (ret[i][0] != correct[i][0] || ret[i][1] != correct[i][1])
                 System.out.print(i + " ");

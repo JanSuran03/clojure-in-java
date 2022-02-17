@@ -6,7 +6,7 @@ public class Process {
     public long private_pc;
     private final Stack<Long> stack;
     public boolean isTerminated;
-    private boolean waitingForTeleport;
+    public boolean waitingForTeleport;
     static int MAX_STACK_SIZE = 16;
     static long TWO_TO_32 = (long) Math.pow(2, 32);
 
@@ -25,11 +25,12 @@ public class Process {
         return this.stack.size() < MAX_STACK_SIZE;
     }
 
-    void pushStack(long num) {
-        if (num < 0) {
-            throw new RuntimeException("PUSH ON STACK: value = " + num);
+    boolean pushStack(long num) {
+        if (num == -1) {
+            return false;
         }
         this.stack.push(num);
+        return true;
     }
 
     boolean canPop() {
@@ -71,16 +72,10 @@ public class Process {
         return ret;
     }
 
-    /**
-     * INSTRUCTION: 0x00
-     */
     public void nop() {
         this.incPc();
     }
 
-    /**
-     * INSTRUCTION: 0x01
-     */
     public void pc() {
         if (this.canPush()) {
             this.pushStack(this.private_pc);
@@ -90,9 +85,6 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x02
-     */
     public void push(long immediate) {
         if (this.canPush()) {
             this.pushStack(immediate);
@@ -102,9 +94,6 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x03
-     */
     public void pop() {
         if (this.canPop()) {
             this.popStack();
@@ -114,9 +103,6 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x04
-     */
     public void swap() {
         if (this.canPopTwo()) {
             long val1 = this.popStack();
@@ -129,9 +115,6 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x05
-     */
     public void dup() {
         if (this.canPush() && this.canPop()) {
             this.pushStack(this.stack.peek());
@@ -141,9 +124,6 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x06
-     */
     public void pushssz() {
         if (this.canPush()) {
             this.pushStack(this.stack.size());
@@ -153,37 +133,34 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x07
-     */
     public void load() {
         if (this.canPop()) {
             long mem_idx = this.popStack();
             //System.out.println(mem_idx);
-            this.pushStack(Memory.get(mem_idx));
-            this.incPc();
+            if (this.pushStack(Memory.get(mem_idx))) {
+                this.incPc();
+            } else {
+                this.terminate();
+            }
         } else {
             this.terminate();
         }
     }
 
-    /**
-     * INSTRUCTION: 0x08
-     */
     public void store() {
         if (this.canPopTwo()) {
             long mem_idx = this.popStack();
             long val = this.popStack();
-            Memory.writeOnIndex((int) mem_idx, (long) val);
-            this.incPc();
+            if (!Memory.writeOnIndex((int) mem_idx, val)) {
+                this.terminate();
+            } else {
+                this.incPc();
+            }
         } else {
             this.terminate();
         }
     }
 
-    /**
-     * INSTRUCTION: 0x09
-     */
     public void add() {
         if (this.canPopTwo()) {
             long val1 = this.popStack();
@@ -196,9 +173,6 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x0a
-     */
     public void sub() {
         if (this.canPopTwo()) {
             long val1 = this.popStack();
@@ -206,15 +180,11 @@ public class Process {
             long res = stayIn32Bits(val1 - val2 + TWO_TO_32);
             this.pushStack(res);
             this.incPc();
-            //System.out.println(val1 + " - " + val2 + " = " + res);
         } else {
             this.terminate();
         }
     }
 
-    /**
-     * INSTRUCTION: 0x0b
-     */
     public void div() {
         if (this.canPopTwo()) {
             long val1 = this.popStack();
@@ -231,17 +201,11 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x0c
-     */
     public void pow() {
         if (this.canPopTwo()) {
             long basis = this.popStack();
             long exp = this.popStack();
             long res = modularExp(basis, exp);
-            if (res < 0) {
-                throw new RuntimeException(basis + " ^ " + exp + " = " + res);
-            }
             this.pushStack(stayIn32Bits(res));
             this.incPc();
         } else {
@@ -249,7 +213,7 @@ public class Process {
         }
     }
 
-    private Process br(int limit, long immediate) {
+    private void br(int limit, long immediate) {
         if (this.canPop()) {
             if (this.popStack() == limit) {
                 this.private_pc = mod256(this.private_pc + immediate);
@@ -258,33 +222,20 @@ public class Process {
         } else {
             this.terminate();
         }
-        return this;
     }
 
-    /**
-     * INSTRUCTION: 0x0d
-     */
     public void brz(long immediate) {
         this.br(0, immediate);
     }
 
-    /**
-     * INSTRUCTION: 0x0e
-     */
     public void br3(long immediate) {
         this.br(3, immediate);
     }
 
-    /**
-     * INSTRUCTION: 0x0f
-     */
     public void br7(long immediate) {
         this.br(7, immediate);
     }
 
-    /**
-     * INSTRUCTION: 0x10
-     */
     public void brge(long immediate) {
         if (this.canPopTwo()) {
             long val1 = this.popStack();
@@ -298,46 +249,39 @@ public class Process {
         }
     }
 
-    /**
-     * INSTRUCTION: 0x11
-     */
     public void jmp(long immediate) {
         this.private_pc = mod256(immediate + 1);
     }
 
-    /**
-     * INSTRUCTION: 0x12
-     */
     public void armedBomb() {
         this.terminate();
     }
 
-    /**
-     * INSTRUCTION: 0x13
-     */
     public void bomb() {
-        Memory.writeOnIndex((int) this.private_pc, 0x12);
-        this.incPc();
+        if (Memory.writeOnIndex((int) this.private_pc, 0x12)) {
+            this.incPc();
+        } else {
+            this.terminate();
+        }
     }
 
-    /**
-     * INSTRUCTION: 0x14
-     */
-    public Process tlport() {
+    public void tlport() {
         this.waitingForTeleport = true;
         Memory.addTeleport(this);
-        return this;
     }
 
-    /**
-     * INSTRUCTION: 0x15
-     */
     public void jntar() {
         int[] offsets = new int[]{-8, -4, -2, 2, 4, 8};
         for (int offset : offsets)
-            Memory.writeOnIndex
+            if (!Memory.writeOnIndex
                     ((int) mod256((this.private_pc + offset + Memory.MEMORY_SIZE)),
-                            0x13);
+                            0x13)) {
+                this.terminate();
+                break;
+            }
+        if (!this.isTerminated) {
+            this.incPc();
+        }
     }
 
     static public long binStrToDec(String num) {
@@ -363,7 +307,7 @@ public class Process {
     }
 
     public void dispatchProcess() {
-        if (!this.isTerminated) {
+        if (!this.isTerminated && !this.waitingForTeleport) {
             long[] inst_and_arg = intToInstructionAndArgument(Memory.get(this.private_pc));
             int inst = (int) inst_and_arg[0];
             long arg = inst_and_arg[1];
