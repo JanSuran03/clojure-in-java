@@ -4,16 +4,23 @@ import java.util.Stack;
 
 public class Memory {
     static public int MEMORY_SIZE = 256;
-    static public int[] memory = new int[MEMORY_SIZE];
+    static public long[] memory = new long[MEMORY_SIZE];
     static public Stack<Process> teleports;
 
-    static public int get(int index) {
-        return memory[index % MEMORY_SIZE];
+    static public long get(long index) {
+        return memory[(((int) index % MEMORY_SIZE) + MEMORY_SIZE) % MEMORY_SIZE];
     }
 
-    static public void writeOnIndex(int index, int value) {
+    static public long get(int index) {
+        return get((long) index);
+    }
+
+    static public void writeOnIndex(int index, long value) {
         if (index != 0) {
-            memory[index] = value;
+            if (value < 0) {
+                throw new RuntimeException("WRITE ON INDEX: value = " + value);
+            }
+            memory[index % MEMORY_SIZE] = value;
         }
     }
 

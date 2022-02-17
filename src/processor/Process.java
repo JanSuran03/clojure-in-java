@@ -3,12 +3,12 @@ package processor;
 import java.util.Stack;
 
 public class Process {
-    public int private_pc;
-    private final Stack<Integer> stack;
+    public long private_pc;
+    private final Stack<Long> stack;
     public boolean isTerminated;
     private boolean waitingForTeleport;
     static int MAX_STACK_SIZE = 16;
-    static int TWO_TO_32 = (int) Math.pow(2, 32);
+    static long TWO_TO_32 = (long) Math.pow(2, 32);
 
     public Process(int offset) {
         private_pc = offset;
@@ -17,7 +17,7 @@ public class Process {
         waitingForTeleport = false;
     }
 
-    public int stayIn32Bits(int num) {
+    static public long stayIn32Bits(long num) {
         return num % TWO_TO_32;
     }
 
@@ -25,7 +25,10 @@ public class Process {
         return this.stack.size() < MAX_STACK_SIZE;
     }
 
-    void pushStack(int num) {
+    void pushStack(long num) {
+        if (num < 0) {
+            throw new RuntimeException("PUSH ON STACK: value = " + num);
+        }
         this.stack.push(num);
     }
 
@@ -37,7 +40,7 @@ public class Process {
         return this.stack.size() >= 2;
     }
 
-    int popStack() {
+    long popStack() {
         return this.stack.pop();
     }
 
@@ -49,25 +52,23 @@ public class Process {
         this.isTerminated = true;
     }
 
-    static int mod256(int num) {
+    static long mod256(long num) {
         return num % 256;
     }
 
-    static int modularExp(int basis, int exp) {
-        basis = basis % TWO_TO_32;
-        if (basis == 0)
+    static long modularExp(long x, long y) {
+        x = x % TWO_TO_32;
+        if (x == 0)
             return 0;
         long ret = 1L;
-        long x = basis;
-        long y = exp;
         while (y > 0) {
             if (y % 2 == 1) {
-                ret = (ret * x) % TWO_TO_32;
+                ret = ((ret * x) % TWO_TO_32 + TWO_TO_32) % TWO_TO_32;
             }
-            x = (x * x) % TWO_TO_32;
-            y = y / 2;
+            x = ((x * x) % TWO_TO_32 + TWO_TO_32) % TWO_TO_32;
+            y = y >> 1;
         }
-        return (int) ret;
+        return ret;
     }
 
     /**
@@ -92,7 +93,7 @@ public class Process {
     /**
      * INSTRUCTION: 0x02
      */
-    public void push(int immediate) {
+    public void push(long immediate) {
         if (this.canPush()) {
             this.pushStack(immediate);
             this.incPc();
@@ -118,8 +119,8 @@ public class Process {
      */
     public void swap() {
         if (this.canPopTwo()) {
-            int val1 = this.popStack();
-            int val2 = this.popStack();
+            long val1 = this.popStack();
+            long val2 = this.popStack();
             this.pushStack(val1);
             this.pushStack(val2);
             this.incPc();
@@ -132,7 +133,7 @@ public class Process {
      * INSTRUCTION: 0x05
      */
     public void dup() {
-        if (this.canPush()) {
+        if (this.canPush() && this.canPop()) {
             this.pushStack(this.stack.peek());
             this.incPc();
         } else {
@@ -157,7 +158,8 @@ public class Process {
      */
     public void load() {
         if (this.canPop()) {
-            int mem_idx = this.popStack();
+            long mem_idx = this.popStack();
+            //System.out.println(mem_idx);
             this.pushStack(Memory.get(mem_idx));
             this.incPc();
         } else {
@@ -170,9 +172,9 @@ public class Process {
      */
     public void store() {
         if (this.canPopTwo()) {
-            int mem_idx = this.popStack();
-            int val = this.popStack();
-            Memory.writeOnIndex(mem_idx, val);
+            long mem_idx = this.popStack();
+            long val = this.popStack();
+            Memory.writeOnIndex((int) mem_idx, (long) val);
             this.incPc();
         } else {
             this.terminate();
@@ -184,9 +186,9 @@ public class Process {
      */
     public void add() {
         if (this.canPopTwo()) {
-            int val1 = this.popStack();
-            int val2 = this.popStack();
-            int res = stayIn32Bits(val1 + val2);
+            long val1 = this.popStack();
+            long val2 = this.popStack();
+            long res = stayIn32Bits(val1 + val2);
             this.pushStack(res);
             this.incPc();
         } else {
@@ -199,11 +201,12 @@ public class Process {
      */
     public void sub() {
         if (this.canPopTwo()) {
-            int val1 = this.popStack();
-            int val2 = this.popStack();
-            int res = stayIn32Bits(val1 - val2);
+            long val1 = this.popStack();
+            long val2 = this.popStack();
+            long res = stayIn32Bits(val1 - val2 + TWO_TO_32);
             this.pushStack(res);
             this.incPc();
+            //System.out.println(val1 + " - " + val2 + " = " + res);
         } else {
             this.terminate();
         }
@@ -214,12 +217,12 @@ public class Process {
      */
     public void div() {
         if (this.canPopTwo()) {
-            int val1 = this.popStack();
-            int val2 = this.popStack();
+            long val1 = this.popStack();
+            long val2 = this.popStack();
             if (val2 == 0) {
                 this.terminate();
             } else {
-                int res = val1 / val2;
+                long res = val1 / val2;
                 this.pushStack(stayIn32Bits(res));
                 this.incPc();
             }
@@ -233,9 +236,12 @@ public class Process {
      */
     public void pow() {
         if (this.canPopTwo()) {
-            int basis = this.popStack();
-            int exp = this.popStack();
-            int res = modularExp(basis, exp);
+            long basis = this.popStack();
+            long exp = this.popStack();
+            long res = modularExp(basis, exp);
+            if (res < 0) {
+                throw new RuntimeException(basis + " ^ " + exp + " = " + res);
+            }
             this.pushStack(stayIn32Bits(res));
             this.incPc();
         } else {
@@ -243,13 +249,12 @@ public class Process {
         }
     }
 
-    private Process br(int limit, int immediate) {
+    private Process br(int limit, long immediate) {
         if (this.canPop()) {
             if (this.popStack() == limit) {
-                this.private_pc = mod256(this.private_pc + immediate + 1);
-            } else {
-                this.incPc();
+                this.private_pc = mod256(this.private_pc + immediate);
             }
+            this.incPc();
         } else {
             this.terminate();
         }
@@ -259,34 +264,35 @@ public class Process {
     /**
      * INSTRUCTION: 0x0d
      */
-    public void brz(int immediate) {
+    public void brz(long immediate) {
         this.br(0, immediate);
     }
 
     /**
      * INSTRUCTION: 0x0e
      */
-    public void br3(int immediate) {
+    public void br3(long immediate) {
         this.br(3, immediate);
     }
 
     /**
      * INSTRUCTION: 0x0f
      */
-    public void br7(int immediate) {
+    public void br7(long immediate) {
         this.br(7, immediate);
     }
 
     /**
      * INSTRUCTION: 0x10
      */
-    public void brge(int immediate) {
+    public void brge(long immediate) {
         if (this.canPopTwo()) {
-            int val1 = this.popStack();
-            int val2 = this.popStack();
+            long val1 = this.popStack();
+            long val2 = this.popStack();
             if (val1 >= val2) {
-                this.private_pc = mod256(this.private_pc + immediate + 1);
+                this.private_pc = mod256(this.private_pc + immediate);
             }
+            this.incPc();
         } else {
             this.terminate();
         }
@@ -295,8 +301,8 @@ public class Process {
     /**
      * INSTRUCTION: 0x11
      */
-    public void jmp(int immediate) {
-        this.private_pc = mod256(this.private_pc + immediate + 1);
+    public void jmp(long immediate) {
+        this.private_pc = mod256(immediate + 1);
     }
 
     /**
@@ -310,7 +316,7 @@ public class Process {
      * INSTRUCTION: 0x13
      */
     public void bomb() {
-        Memory.writeOnIndex(this.private_pc, 0x12);
+        Memory.writeOnIndex((int) this.private_pc, 0x12);
         this.incPc();
     }
 
@@ -329,12 +335,14 @@ public class Process {
     public void jntar() {
         int[] offsets = new int[]{-8, -4, -2, 2, 4, 8};
         for (int offset : offsets)
-            Memory.writeOnIndex(mod256(this.private_pc + offset), 0x13);
+            Memory.writeOnIndex
+                    ((int) mod256((this.private_pc + offset + Memory.MEMORY_SIZE)),
+                            0x13);
     }
 
-    static public int binStrToDec(String num) {
+    static public long binStrToDec(String num) {
         String rev = new StringBuilder(num).reverse().toString();
-        int ret = 0, pow = 1;
+        long ret = 0, pow = 1;
         for (int i = 0; i < rev.length(); i++) {
             if (rev.charAt(i) == '1') {
                 ret += pow;
@@ -344,11 +352,11 @@ public class Process {
         return ret;
     }
 
-    static public int[] intToInstructionAndArgument(int num) {
-        String as_bin = Integer.toBinaryString(num);
-        String fill = "0".repeat(32 - as_bin.length());
+    static public long[] intToInstructionAndArgument(long num) {
+        String as_bin = Long.toBinaryString(num);
+        String fill = "0".repeat(Math.max(32 - as_bin.length(), 0));
         as_bin = fill + as_bin;
-        int[] ret = new int[2];
+        long[] ret = new long[2];
         ret[0] = binStrToDec(as_bin.substring(24));
         ret[1] = binStrToDec(as_bin.substring(8, 24));
         return ret;
@@ -356,9 +364,9 @@ public class Process {
 
     public void dispatchProcess() {
         if (!this.isTerminated) {
-            int[] inst_and_arg = intToInstructionAndArgument(Memory.get(this.private_pc));
-            int inst = inst_and_arg[0];
-            int arg = inst_and_arg[1];
+            long[] inst_and_arg = intToInstructionAndArgument(Memory.get(this.private_pc));
+            int inst = (int) inst_and_arg[0];
+            long arg = inst_and_arg[1];
             switch (inst) {
                 case 0x00 -> this.nop();
                 case 0x01 -> this.pc();
